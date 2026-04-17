@@ -58,15 +58,44 @@ function openBaseDetail(baseId) {
     alert(info);
 }
 
-function deleteBase(baseId) {
-    if (confirm("Tem certeza que deseja excluir esta base e todos os seus registros?")) {
-        state.bases = state.bases.filter(b => b.id !== baseId);
-        state.records = state.records.filter(r => r.baseId !== baseId);
-        saveData();
-        renderBases();
-    }
-}
+function openBaseDetail(baseId) {
+    const base = state.bases.find(b => b.id === baseId);
+    if (!base) return;
 
+    const records = state.records.filter(r => r.baseId === baseId);
+
+    const container = document.getElementById('basedetail-content');
+
+    container.innerHTML = `
+        <div class="page-header">
+            <h2>${base.name}</h2>
+            <p>${base.category}</p>
+        </div>
+
+        <div class="form-card">
+            <p><strong>Total de registros:</strong> ${records.length}</p>
+            <p><strong>Campos:</strong> ${base.fields.join(', ')}</p>
+        </div>
+
+        <div class="section-header">
+            <h3>Registros</h3>
+        </div>
+
+        <div class="records-list">
+            ${records.map(r => `
+                <div class="record-item">
+                    <div class="rec-info">
+                        <div class="rec-name">${r.nome || 'Sem nome'}</div>
+                        <div class="rec-meta">${r.category || ''}</div>
+                    </div>
+                    <span class="badge badge-${(r.status || '').toLowerCase()}">${r.status || ''}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    showPage('basedetail');
+}
 // --- 5. EXPORTAÇÃO DE ARQUIVOS (CSV) ---
 function exportToCSV() {
     if (state.records.length === 0) return alert("Não há dados para exportar.");
@@ -130,13 +159,17 @@ function editRecord(id) {
 function renderBases() {
     const container = document.getElementById('bases-list');
     container.innerHTML = '';
+
     state.bases.forEach(base => {
         const card = document.createElement('div');
         card.className = 'base-card';
         card.innerHTML = `
             <h4>${base.name}</h4>
             <p>${base.category}</p>
-            <button onclick="deleteBase('${base.id}')">Excluir</button>
+            <div style="display:flex; gap:8px;">
+                <button onclick="openBaseDetail('${base.id}')">Abrir</button>
+                <button onclick="deleteBase('${base.id}')">Excluir</button>
+            </div>
         `;
         container.appendChild(card);
     });
