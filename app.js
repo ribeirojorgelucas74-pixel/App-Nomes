@@ -130,24 +130,33 @@ function exportAllCSV() {
 }
 
 // --- 6. RENDERIZAÇÃO ---
+function formatValue(field, value) {
+    if (!value) return '';
+
+    if (field.type === 'date') {
+        return new Date(value).toLocaleDateString();
+    }
+
+    return value;
+}
+
 function renderRecords() {
     const list = document.getElementById('records-list');
-
-    let filtered = state.records.filter(r => {
-        const nome = (r.data?.nome || "").toLowerCase();
-        return nome.includes(state.searchQuery.toLowerCase());
-    });
-
     list.innerHTML = '';
 
-    filtered.forEach(rec => {
+    state.records.forEach(rec => {
+        const base = state.bases.find(b => b.id === rec.baseId);
+
+        const nomeField = base.fields.find(f => f.name === 'nome');
+        const nome = rec.data?.nome || 'Sem nome';
+
         const item = document.createElement('div');
         item.className = 'record-item';
 
         item.innerHTML = `
             <div class="rec-info">
-                <div class="rec-name">${rec.data?.nome || 'Sem nome'}</div>
-                <div class="rec-meta">${rec.category}</div>
+                <div class="rec-name">${nome}</div>
+                <div class="rec-meta">${base.category}</div>
             </div>
             <span class="badge badge-${rec.status.toLowerCase()}">${rec.status}</span>
             <button onclick="openRecordDetail('${rec.id}')">Abrir</button>
@@ -222,32 +231,52 @@ function openRecordDetail(id) {
 
     container.innerHTML = `
         <div class="page-header">
-            <h2>${rec.data?.nome || 'Registro'}</h2>
+            <h2>Editar Registro</h2>
         </div>
 
         <div class="form-card">
-            ${base.fields.map(field => `
-                <div class="form-group">
-                    <label>${field}</label>
-                    <input id="edit-${field}" value="${rec.data[field] || ''}" />
-                </div>
-            `).join('')}
+            ${base.fields.map(field => {
+                let value = rec.data[field.name] || '';
 
-            <div class="form-group">
-                <label>Status</label>
-                <select id="edit-status">
-                    <option ${rec.status === 'Ativo' ? 'selected' : ''}>Ativo</option>
-                    <option ${rec.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                    <option ${rec.status === 'Inativo' ? 'selected' : ''}>Inativo</option>
-                </select>
-            </div>
+                if (field.type === 'date' && value) {
+                    value = value.split('T')[0];
+                }
+
+                let input = '';
+
+                switch (field.type) {
+                    case 'date':
+                        input = `<input type="date" id="edit-${field.name}" value="${value}" />`;
+                        break;
+
+                    case 'email':
+                        input = `<input type="email" id="edit-${field.name}" value="${value}" />`;
+                        break;
+
+                    case 'select':
+                        input = `
+                            <select id="edit-${field.name}">
+                                ${field.options.map(opt => `
+                                    <option ${opt === value ? 'selected' : ''}>${opt}</option>
+                                `).join('')}
+                            </select>
+                        `;
+                        break;
+
+                    default:
+                        input = `<input type="text" id="edit-${field.name}" value="${value}" />`;
+                }
+
+                return `
+                    <div class="form-group">
+                        <label>${field.name}</label>
+                        ${input}
+                    </div>
+                `;
+            }).join('')}
 
             <button class="btn-primary btn-full" onclick="updateRecord('${rec.id}')">
-                Salvar alterações
-            </button>
-
-            <button class="btn-ghost btn-full" onclick="deleteRecord('${rec.id}')">
-                Excluir
+                Salvar
             </button>
         </div>
     `;
@@ -270,9 +299,32 @@ function updateFieldsForBase() {
         const div = document.createElement('div');
         div.className = 'form-group';
 
+        let inputHTML = '';
+
+        switch (field.type) {
+            case 'date':
+                inputHTML = `<input type="date" id="field-${field.name}" />`;
+                break;
+
+            case 'email':
+                inputHTML = `<input type="email" id="field-${field.name}" placeholder="email@exemplo.com" />`;
+                break;
+
+            case 'select':
+                inputHTML = `
+                    <select id="field-${field.name}">
+                        ${field.options.map(opt => `<option>${opt}</option>`).join('')}
+                    </select>
+                `;
+                break;
+
+            default:
+                inputHTML = `<input type="text" id="field-${field.name}" placeholder="Digite ${field.name}" />`;
+        }
+
         div.innerHTML = `
-            <label>${field}</label>
-            <input id="field-${field}" placeholder="Digite ${field}" />
+            <label>${field.name}</label>
+            ${inputHTML}
         `;
 
         container.appendChild(div);
@@ -282,14 +334,19 @@ function updateFieldsForBase() {
 }
 function saveRecord() {
     const baseId = document.getElementById('new-base').value;
-    if (!baseId) return alert("Selecione uma base");
-
     const base = state.bases.find(b => b.id === baseId);
 
     const data = {};
+
     base.fields.forEach(field => {
-        const input = document.getElementById(`field-${field}`);
-        if (input) data[field] = input.value;
+        const el = document.getElementById(`field-${field.name}`);
+        let value = el.value;
+
+        if (field.type === "date" && value) {
+            value = new Date(value).toISOString();
+        }
+
+        data[field.name] = value;
     });
 
     const record = {
@@ -304,6 +361,39 @@ function saveRecord() {
     state.records.push(record);
     saveData();
 
-    alert("Registro criado!");
     showPage('home');
+}
+function createBase() {
+    const name = document.getElementById('nb-name').value;
+    const category = document.getElementById('nb-category').value;
+
+    const fields = [];
+
+    document.querySelectorAll('#fields-picker input:checked').forEach(input => {
+        const fieldName = input.value;
+
+        let type = "text";
+
+        if (fieldName === "email") type = "email";
+        if (fieldName === "data_nasc" || fieldName === "data_entrada") type = "date";
+        if (fieldName === "status") type = "select";
+
+        fields.push({
+            name: fieldName,
+            type,
+            options: fieldName === "status" ? ["Ativo", "Pendente", "Inativo"] : null
+        });
+    });
+
+    const base = {
+        id: crypto.randomUUID(),
+        name,
+        category,
+        fields
+    };
+
+    state.bases.push(base);
+    saveData();
+    closeModal();
+    renderBases();
 }
