@@ -101,7 +101,13 @@ function exportToCSV() {
     if (state.records.length === 0) return alert("Não há dados para exportar.");
 
     // Pegar todos os cabeçalhos únicos de todos os registros
-    const headers = ["id", "baseId", "category", "status", "timestamp", "nome"];
+    const headersSet = new Set();
+
+state.records.forEach(r => {
+    Object.keys(r).forEach(k => headersSet.add(k));
+});
+
+const headers = Array.from(headersSet);
     
     let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
 
