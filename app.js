@@ -397,3 +397,6 @@ function createBase() {
     closeModal();
     renderBases();
 }
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+}
