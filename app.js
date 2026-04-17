@@ -97,61 +97,65 @@ function openBaseDetail(baseId) {
     showPage('basedetail');
 }
 // --- 5. EXPORTAÇÃO DE ARQUIVOS (CSV) ---
-function exportToCSV() {
-    if (state.records.length === 0) return alert("Não há dados para exportar.");
+function exportAllCSV() {
+    if (!state.records.length) return alert("Sem dados");
 
-    // Pegar todos os cabeçalhos únicos de todos os registros
     const headersSet = new Set();
 
-state.records.forEach(r => {
-    Object.keys(r).forEach(k => headersSet.add(k));
-});
-
-const headers = Array.from(headersSet);
-    
-    let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
-
-    state.records.forEach(rec => {
-        let row = headers.map(h => `"${rec[h] || ''}"`);
-        csvContent += row.join(",") + "\n";
+    state.records.forEach(r => {
+        Object.keys(r.data || {}).forEach(k => headersSet.add(k));
     });
 
-    const encodedUri = encodeURI(csvContent);
+    const headers = ["id", "baseId", ...Array.from(headersSet), "status"];
+
+    let csv = headers.join(",") + "\n";
+
+    state.records.forEach(r => {
+        const row = headers.map(h => {
+            if (h === "id") return r.id;
+            if (h === "baseId") return r.baseId;
+            if (h === "status") return r.status;
+            return r.data?.[h] || '';
+        });
+
+        csv += row.map(v => `"${v}"`).join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `exportacao_nomesapp_${Date.now()}.csv`);
-    document.body.appendChild(link);
+
+    link.href = URL.createObjectURL(blob);
+    link.download = "dados.csv";
     link.click();
-    document.body.removeChild(link);
-    
-    alert("Arquivo exportado com sucesso!");
 }
 
 // --- 6. RENDERIZAÇÃO ---
 function renderRecords() {
     const list = document.getElementById('records-list');
+
     let filtered = state.records.filter(r => {
-        const matchesSearch = (r.nome || "").toLowerCase().includes(state.searchQuery.toLowerCase());
-        const matchesStatus = state.statusFilter === 'todos' || r.status === state.statusFilter;
-        return matchesSearch && matchesStatus;
+        const nome = (r.data?.nome || "").toLowerCase();
+        return nome.includes(state.searchQuery.toLowerCase());
     });
 
     list.innerHTML = '';
+
     filtered.forEach(rec => {
         const item = document.createElement('div');
         item.className = 'record-item';
+
         item.innerHTML = `
             <div class="rec-info">
-                <div class="rec-name">${rec.nome || 'Sem nome'}</div>
+                <div class="rec-name">${rec.data?.nome || 'Sem nome'}</div>
                 <div class="rec-meta">${rec.category}</div>
             </div>
             <span class="badge badge-${rec.status.toLowerCase()}">${rec.status}</span>
-            <button onclick="editRecord('${rec.id}')" style="background:none; border:none; color:var(--accent)">Editar</button>
+            <button onclick="openRecordDetail('${rec.id}')">Abrir</button>
         `;
+
         list.appendChild(item);
     });
 }
-
 function editRecord(id) {
     const rec = state.records.find(r => r.id === id);
     const novoNome = prompt("Editar nome:", rec.nome);
@@ -186,4 +190,120 @@ function toggleDark(isDark) {
     document.body.classList.toggle('light-mode', !isDark);
     state.settings.darkMode = isDark;
     saveData();
+}
+function deleteRecord(id) {
+    if (!confirm("Excluir registro?")) return;
+
+    state.records = state.records.filter(r => r.id !== id);
+    saveData();
+
+    showPage('home');
+}
+function updateRecord(id) {
+    const rec = state.records.find(r => r.id === id);
+    const base = state.bases.find(b => b.id === rec.baseId);
+
+    base.fields.forEach(field => {
+        const input = document.getElementById(`edit-${field}`);
+        rec.data[field] = input.value;
+    });
+
+    rec.status = document.getElementById('edit-status').value;
+
+    saveData();
+    alert("Atualizado!");
+    showPage('home');
+}
+function openRecordDetail(id) {
+    const rec = state.records.find(r => r.id === id);
+    const base = state.bases.find(b => b.id === rec.baseId);
+
+    const container = document.getElementById('detail-content');
+
+    container.innerHTML = `
+        <div class="page-header">
+            <h2>${rec.data?.nome || 'Registro'}</h2>
+        </div>
+
+        <div class="form-card">
+            ${base.fields.map(field => `
+                <div class="form-group">
+                    <label>${field}</label>
+                    <input id="edit-${field}" value="${rec.data[field] || ''}" />
+                </div>
+            `).join('')}
+
+            <div class="form-group">
+                <label>Status</label>
+                <select id="edit-status">
+                    <option ${rec.status === 'Ativo' ? 'selected' : ''}>Ativo</option>
+                    <option ${rec.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                    <option ${rec.status === 'Inativo' ? 'selected' : ''}>Inativo</option>
+                </select>
+            </div>
+
+            <button class="btn-primary btn-full" onclick="updateRecord('${rec.id}')">
+                Salvar alterações
+            </button>
+
+            <button class="btn-ghost btn-full" onclick="deleteRecord('${rec.id}')">
+                Excluir
+            </button>
+        </div>
+    `;
+
+    showPage('detail');
+}
+function updateFieldsForBase() {
+    const baseId = document.getElementById('new-base').value;
+    const container = document.getElementById('dynamic-fields');
+    const actions = document.getElementById('form-actions');
+
+    container.innerHTML = '';
+    actions.classList.add('hidden');
+
+    if (!baseId) return;
+
+    const base = state.bases.find(b => b.id === baseId);
+
+    base.fields.forEach(field => {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+
+        div.innerHTML = `
+            <label>${field}</label>
+            <input id="field-${field}" placeholder="Digite ${field}" />
+        `;
+
+        container.appendChild(div);
+    });
+
+    actions.classList.remove('hidden');
+}
+function saveRecord() {
+    const baseId = document.getElementById('new-base').value;
+    if (!baseId) return alert("Selecione uma base");
+
+    const base = state.bases.find(b => b.id === baseId);
+
+    const data = {};
+    base.fields.forEach(field => {
+        const input = document.getElementById(`field-${field}`);
+        if (input) data[field] = input.value;
+    });
+
+    const record = {
+        id: crypto.randomUUID(),
+        baseId,
+        data,
+        status: data.status || "Ativo",
+        category: base.category,
+        timestamp: Date.now()
+    };
+
+    state.records.push(record);
+    saveData();
+
+    alert("Registro criado!");
+    showPage('home');
 }
