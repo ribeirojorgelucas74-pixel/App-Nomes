@@ -1,0 +1,186 @@
+/* NomesApp - Design System 
+  Tipografia: Syne (Display) + DM Sans (Corpo)
+*/
+
+:root {
+    --bg1: #0f071a; /* Fundo principal */
+    --bg2: #1a0a2e; /* Cards e Nav */
+    --bg3: #2d1b4e; /* Inputs e destaques */
+    --bg4: #3f2b63;
+    --accent: #7c3aed; /* Roxo principal */
+    --accent-glow: rgba(124, 58, 237, 0.3);
+    --text1: #ffffff;
+    --text2: #b4a9c3;
+    --text3: #716681;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+}
+
+/* Modo Claro (Light Mode) */
+body.light-mode {
+    --bg1: #f8f7fa;
+    --bg2: #ffffff;
+    --bg3: #f1f0f5;
+    --bg4: #e5e3ed;
+    --text1: #1a0a2e;
+    --text2: #5a4d6e;
+    --text3: #948ba3;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg1);
+    color: var(--text1);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    transition: background 0.3s ease;
+}
+
+/* Splash Screen */
+#splash {
+    position: fixed;
+    inset: 0;
+    background: var(--bg1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.splash-logo { text-align: center; margin-bottom: 2rem; }
+.splash-icon { margin-bottom: 1rem; animation: pulse 2s infinite; }
+.splash-logo h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 800; }
+.splash-loader { width: 140px; height: 4px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+.splash-bar { width: 40%; height: 100%; background: var(--accent); animation: loading 1.5s infinite ease-in-out; }
+
+@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
+
+/* Layout Geral */
+.hidden { display: none !important; }
+.page { display: none; padding: 1.5rem; padding-bottom: 5rem; animation: fadeIn 0.3s ease; }
+.page.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Header & Nav */
+header {
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+#bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: var(--bg2);
+    display: flex;
+    justify-content: space-around;
+    padding: 0.75rem 0.5rem;
+    border-top: 1px solid var(--bg3);
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.nav-btn.active { color: var(--accent); }
+.nav-btn-add { transform: translateY(-15px); }
+
+/* Cards & Listas */
+.base-card, .form-card, .report-card {
+    background: var(--bg2);
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--bg3);
+}
+
+.record-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--bg2);
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge-ativo { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+.badge-pendente { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+
+/* Botões */
+.btn-primary {
+    background: linear-gradient(135deg, #7c3aed, #c026d3);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    width: 100%;
+}
+
+/* Modais */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+}
+
+.modal {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: var(--bg1);
+    border-radius: 24px 24px 0 0;
+    padding: 2rem;
+    z-index: 1001;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Utilitários */
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 6px; font-size: 12px; color: var(--text2); }
+input, select {
+    width: 100%;
+    padding: 0.8rem;
+    background: var(--bg3);
+    border: 1px solid var(--bg4);
+    border-radius: 10px;
+    color: var(--text1);
+}
